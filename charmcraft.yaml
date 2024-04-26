@@ -1,0 +1,27 @@
+name: intel-device-plugins-k8s-operator
+type: charm
+title: Intel Device Plugins K8s Operator
+summary: An operator for Intel device enablement for Kubernetes.
+description: |
+  This operator manages Intel device plugins for Kubernetes.
+
+  Specifically, it is a custom controller for serving the installation
+  and lifecycle of Intel device plugins for use within Kubernetes pods.
+  Supported devices include the Intel GPU, FPGA, QAT, SGX, DSA, and DLB.
+
+  This is useful for Kubernetes-based workloads that depend on Intel devices
+  for enabling or enhancing their function, e.g. a machine learning application 
+  that runs faster on a discrete Intel GPU.
+
+  The operator may be useful to developers, engineers, or hobbyists searching
+  for streamlined device enablement on their local machines, or to cluster
+  administrators in need of a single point of control for managing their
+  various devices.
+bases:
+  - build-on:
+    - name: ubuntu
+      channel: "22.04"
+    run-on:
+    - name: ubuntu
+      channel: "22.04"
+
