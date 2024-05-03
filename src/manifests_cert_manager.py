@@ -1,20 +1,25 @@
 # Copyright 2024 Ubuntu
 # See LICENSE file for licensing details.
 
+"""Implementation of cert-manager kubernetes manifests."""
+
 import logging
+import pickle
 from hashlib import md5
 from typing import Dict
-import pickle
 
 from ops.manifests import ConfigRegistry, ManifestLabel, Manifests, Patch
 
 log = logging.getLogger()
 
+
 class RemoveNamespace(Patch):
-    """Remove namespace from resources so they deploy to the charm's namespace"""
+    """Remove namespace from resources so they deploy to the charm's namespace."""
 
     def __call__(self, obj):
+        """Remove namespace from resources."""
         obj.metadata.namespace = None
+
 
 class CertManagerManifests(Manifests):
     """Deployment details for cert-manager."""
@@ -27,7 +32,7 @@ class CertManagerManifests(Manifests):
             [
                 ManifestLabel(self),
                 ConfigRegistry(self),
-                #RemoveNamespace(self),
+                # RemoveNamespace(self),
             ],
         )
         self.charm_config = charm_config
@@ -42,7 +47,7 @@ class CertManagerManifests(Manifests):
                 del config[key]  # blank out keys not currently set to something
 
         return config
-    
+
     def hash(self) -> int:
         """Calculate a hash of the current configuration."""
         return int(md5(pickle.dumps(self.config)).hexdigest(), 16)

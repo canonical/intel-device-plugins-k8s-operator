@@ -14,17 +14,17 @@ https://juju.is/docs/sdk/create-a-minimal-kubernetes-charm
 
 import logging
 
+from manifests_cert_manager import CertManagerManifests
+from manifests_operator import IntelDevicePluginsK8SOperatorManifests
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
 from ops.manifests import Collector, ManifestClientError
 from ops.model import ActiveStatus, MaintenanceStatus, WaitingStatus
 
-from manifests_cert_manager import CertManagerManifests
-from manifests_operator import IntelDevicePluginsK8SOperatorManifests
-
 # Log messages can be retrieved using juju debug-log
 log = logging.getLogger()
+
 
 class IntelDevicePluginsK8SOperatorCharm(CharmBase):
     """Charm the service."""
