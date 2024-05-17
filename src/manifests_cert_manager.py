@@ -8,17 +8,9 @@ import pickle
 from hashlib import md5
 from typing import Dict
 
-from ops.manifests import ConfigRegistry, ManifestLabel, Manifests, Patch
+from ops.manifests import ManifestLabel, Manifests
 
 log = logging.getLogger()
-
-
-class RemoveNamespace(Patch):
-    """Remove namespace from resources so they deploy to the charm's namespace."""
-
-    def __call__(self, obj):
-        """Remove namespace from resources."""
-        obj.metadata.namespace = None
 
 
 class CertManagerManifests(Manifests):
@@ -31,8 +23,6 @@ class CertManagerManifests(Manifests):
             "upstream/cert-manager",
             [
                 ManifestLabel(self),
-                ConfigRegistry(self),
-                # RemoveNamespace(self),
             ],
         )
         self.charm_config = charm_config
