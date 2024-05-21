@@ -14,90 +14,93 @@ https://juju.is/docs/sdk/create-a-minimal-kubernetes-charm
 
 import logging
 
-import ops
+from manifests_cert_manager import CertManagerManifests
+from manifests_operator import IntelDevicePluginsK8SOperatorManifests
+from ops.charm import CharmBase
+from ops.framework import StoredState
+from ops.main import main
+from ops.manifests import Collector, ManifestClientError
+from ops.model import ActiveStatus, MaintenanceStatus, WaitingStatus
 
 # Log messages can be retrieved using juju debug-log
-logger = logging.getLogger(__name__)
-
-VALID_LOG_LEVELS = ["info", "debug", "warning", "error", "critical"]
+log = logging.getLogger()
 
 
-class IntelDevicePluginsK8SOperatorCharm(ops.CharmBase):
+class IntelDevicePluginsK8SOperatorCharm(CharmBase):
     """Charm the service."""
+
+    stored = StoredState()
 
     def __init__(self, *args):
         super().__init__(*args)
-        self.framework.observe(self.on['httpbin'].pebble_ready, self._on_httpbin_pebble_ready)
-        self.framework.observe(self.on.config_changed, self._on_config_changed)
 
-    def _on_httpbin_pebble_ready(self, event: ops.PebbleReadyEvent):
-        """Define and start a workload using the Pebble API.
+        self.stored.set_default(
+            config_hash=None,  # hashed value of the applied config once valid
+            deployed=False,  # True if the config has been applied after new hash
+        )
+        self.collector = Collector(
+            CertManagerManifests(self, self.config),
+            IntelDevicePluginsK8SOperatorManifests(self, self.config),
+        )
 
-        Change this example to suit your needs. You'll need to specify the right entrypoint and
-        environment configuration for your specific workload.
+        self.framework.observe(self.on.update_status, self._update_status)
+        self.framework.observe(self.on.install, self._install_or_upgrade)
+        self.framework.observe(self.on.upgrade_charm, self._install_or_upgrade)
+        self.framework.observe(self.on.config_changed, self._merge_config)
+        self.framework.observe(self.on.stop, self._cleanup)
 
-        Learn more about interacting with Pebble at at https://juju.is/docs/sdk/pebble.
-        """
-        # Get a reference the container attribute on the PebbleReadyEvent
-        container = event.workload
-        # Add initial Pebble config layer using the Pebble API
-        container.add_layer("httpbin", self._pebble_layer, combine=True)
-        # Make Pebble reevaluate its plan, ensuring any services are started if enabled.
-        container.replan()
-        # Learn more about statuses in the SDK docs:
-        # https://juju.is/docs/sdk/constructs#heading--statuses
-        self.unit.status = ops.ActiveStatus()
+    def _update_status(self, _):
+        if not self.stored.deployed:
+            return
 
-    def _on_config_changed(self, event: ops.ConfigChangedEvent):
-        """Handle changed configuration.
-
-        Change this example to suit your needs. If you don't need to handle config, you can remove
-        this method.
-
-        Learn more about config at https://juju.is/docs/sdk/config
-        """
-        # Fetch the new config value
-        log_level = self.model.config["log-level"].lower()
-
-        # Do some validation of the configuration option
-        if log_level in VALID_LOG_LEVELS:
-            # The config is good, so update the configuration of the workload
-            container = self.unit.get_container("httpbin")
-            # Verify that we can connect to the Pebble API in the workload container
-            if container.can_connect():
-                # Push an updated layer with the new config
-                container.add_layer("httpbin", self._pebble_layer, combine=True)
-                container.replan()
-
-                logger.debug("Log level for gunicorn changed to '%s'", log_level)
-                self.unit.status = ops.ActiveStatus()
-            else:
-                # We were unable to connect to the Pebble API, so we defer this event
-                event.defer()
-                self.unit.status = ops.WaitingStatus("waiting for Pebble API")
+        unready = self.collector.unready
+        if unready:
+            self.unit.status = WaitingStatus(", ".join(unready))
         else:
-            # In this case, the config option is bad, so block the charm and notify the operator.
-            self.unit.status = ops.BlockedStatus("invalid log level: '{log_level}'")
+            self.unit.status = ActiveStatus("Ready")
+            self.unit.set_workload_version(self.collector.short_version)
+            self.app.status = ActiveStatus(self.collector.long_version)
 
-    @property
-    def _pebble_layer(self) -> ops.pebble.LayerDict:
-        """Return a dictionary representing a Pebble layer."""
-        return {
-            "summary": "httpbin layer",
-            "description": "pebble config layer for httpbin",
-            "services": {
-                "httpbin": {
-                    "override": "replace",
-                    "summary": "httpbin",
-                    "command": "gunicorn -b 0.0.0.0:80 httpbin:app -k gevent",
-                    "startup": "enabled",
-                    "environment": {
-                        "GUNICORN_CMD_ARGS": f"--log-level {self.model.config['log-level']}"
-                    },
-                }
-            },
-        }
+    def _merge_config(self, event):
+        self.unit.status = MaintenanceStatus("Evaluating Manifests")
+        new_hash = 0
+        for controller in self.collector.manifests.values():
+            new_hash += controller.hash()
+
+        self.stored.deployed = False
+        if self._install_or_upgrade(event, config_hash=new_hash):
+            self.stored.config_hash = new_hash
+            self.stored.deployed = True
+
+    def _install_or_upgrade(self, event, config_hash=None):
+        if self.stored.config_hash == config_hash:
+            log.info("Skipping until the config is evaluated.")
+            return True
+
+        self.unit.status = MaintenanceStatus("Deploying Intel Device Plugins Operator")
+        self.unit.set_workload_version("")
+        for controller in self.collector.manifests.values():
+            try:
+                controller.apply_manifests()
+            except ManifestClientError as e:
+                self.unit.status = WaitingStatus("Waiting for kube-apiserver")
+                log.warning(f"Encountered retryable installation error: {e}")
+                event.defer()
+                return False
+        return True
+
+    def _cleanup(self, event):
+        if self.stored.config_hash:
+            self.unit.status = MaintenanceStatus("Cleaning up Intel Device Plugins Operator")
+            for controller in self.collector.manifests.values():
+                try:
+                    controller.delete_manifests(ignore_unauthorized=True)
+                except ManifestClientError:
+                    self.unit.status = WaitingStatus("Waiting for kube-apiserver")
+                    event.defer()
+                    return
+        self.unit.status = MaintenanceStatus("Shutting down")
 
 
 if __name__ == "__main__":  # pragma: nocover
-    ops.main(IntelDevicePluginsK8SOperatorCharm)  # type: ignore
+    main(IntelDevicePluginsK8SOperatorCharm)  # type: ignore
