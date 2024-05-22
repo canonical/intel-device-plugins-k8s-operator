@@ -4,13 +4,7 @@
 #
 # Learn more at: https://juju.is/docs/sdk
 
-"""Charm the service.
-
-Refer to the following tutorial that will help you
-develop a new k8s charm using the Operator Framework:
-
-https://juju.is/docs/sdk/create-a-minimal-kubernetes-charm
-"""
+"""Dispatch logic for the intel-device-plugins-k8s-operator charm."""
 
 import logging
 
