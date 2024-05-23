@@ -1,4 +1,4 @@
-name: intel-device-plugins-k8s-operator
+name: intel-device-plugins-k8s
 type: charm
 title: Intel Device Plugins K8s Operator
 summary: An operator for Intel device enablement for Kubernetes.
@@ -32,23 +32,23 @@ parts:
       - upstream/**
 config:
   options:
-    intel-operator-release:
+    intel-device-plugins-operator-release:
       type: string
       description: |
         Specify the version of intel-device-plugins-operator, see:
         https://github.com/intel/intel-device-plugins-for-kubernetes/releases
 
         example)
-          juju config intel-device-plugins-k8s-operator intel-operator-release='v0.29.0'
+          juju config intel-device-plugins-k8s intel-device-plugins-operator-release='v0.29.0'
 
         A list of supported versions is available through the action:
-          juju run intel-device-plugins-k8s-operator/0 list-versions
+          juju run intel-device-plugins-k8s/0 list-versions
 
         To reset by to the latest supported by the charm use:
-          juju config intel-device-plugins-k8s-operator --reset intel-operator-release
+          juju config intel-device-plugins-k8s --reset intel-device-plugins-operator-release
 
         The current release deployed is available by viewing
-          juju status intel-device-plugins-k8s-operator
+          juju status intel-device-plugins-k8s
     cert-manager-release:
       type: string
       description: |
@@ -56,16 +56,16 @@ config:
         https://cert-manager.io/docs/releases/
 
         example)
-          juju config intel-device-plugins-k8s-operator cert-manager-release='v1.14.5'
+          juju config intel-device-plugins-k8s cert-manager-release='v1.14.5'
 
         A list of supported versions is available through the action:
-          juju run intel-device-plugins-k8s-operator/0 list-versions
+          juju run intel-device-plugins-k8s/0 list-versions
 
         To reset by to the latest supported by the charm use:
-          juju config intel-device-plugins-k8s-operator --reset cert-manager-release
+          juju config intel-device-plugins-k8s --reset cert-manager-release
 
         The current release deployed is available by viewing
-          juju status intel-device-plugins-k8s-operator
+          juju status intel-device-plugins-k8s
 actions:
   list-versions:
     description: List intel-device-plugins-operator and cert-manager versions supported by this charm
