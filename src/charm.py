@@ -42,6 +42,34 @@ class IntelDevicePluginsK8SOperatorCharm(CharmBase):
         self.framework.observe(self.on.upgrade_charm, self._install_or_upgrade)
         self.framework.observe(self.on.config_changed, self._merge_config)
         self.framework.observe(self.on.stop, self._cleanup)
+        self.framework.observe(self.on.list_versions_action, self._list_versions)
+        self.framework.observe(self.on.list_resources_action, self._list_resources)
+        self.framework.observe(self.on.scrub_resources_action, self._scrub_resources)
+        self.framework.observe(self.on.sync_resources_action, self._sync_resources)
+
+    def _list_versions(self, event):
+        self.collector.list_versions(event)
+
+    def _list_resources(self, event):
+        manifests = event.params.get("controller", "")
+        resources = event.params.get("resources", "")
+        return self.collector.list_resources(event, manifests, resources)
+
+    def _scrub_resources(self, event):
+        manifests = event.params.get("controller", "")
+        resources = event.params.get("resources", "")
+        return self.collector.scrub_resources(event, manifests, resources)
+
+    def _sync_resources(self, event):
+        manifests = event.params.get("controller", "")
+        resources = event.params.get("resources", "")
+        try:
+            self.collector.apply_missing_resources(event, manifests, resources)
+        except ManifestClientError:
+            msg = "Failed to apply missing resources. API Server unavailable."
+            event.set_results({"result": msg})
+        else:
+            self.stored.deployed = True
 
     def _update_status(self, _):
         if not self.stored.deployed:

@@ -36,6 +36,8 @@ class CertManagerManifests(Manifests):
             if value == "" or value is None:
                 del config[key]  # blank out keys not currently set to something
 
+        config["release"] = config.pop("cert-manager-release", None)
+
         return config
 
     def hash(self) -> int:
