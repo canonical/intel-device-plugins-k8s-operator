@@ -30,4 +30,85 @@ parts:
   charm:
     prime:
       - upstream/**
+config:
+  options:
+    intel-operator-release:
+      type: string
+      description: |
+        Specify the version of intel-device-plugins-operator, see:
+        https://github.com/intel/intel-device-plugins-for-kubernetes/releases
 
+        example)
+          juju config intel-device-plugins-k8s-operator intel-operator-release='v0.29.0'
+
+        A list of supported versions is available through the action:
+          juju run intel-device-plugins-k8s-operator/0 list-versions
+
+        To reset by to the latest supported by the charm use:
+          juju config intel-device-plugins-k8s-operator --reset intel-operator-release
+
+        The current release deployed is available by viewing
+          juju status intel-device-plugins-k8s-operator
+    cert-manager-release:
+      type: string
+      description: |
+        Specify the version of cert-manager, see:
+        https://cert-manager.io/docs/releases/
+
+        example)
+          juju config intel-device-plugins-k8s-operator cert-manager-release='v1.14.5'
+
+        A list of supported versions is available through the action:
+          juju run intel-device-plugins-k8s-operator/0 list-versions
+
+        To reset by to the latest supported by the charm use:
+          juju config intel-device-plugins-k8s-operator --reset cert-manager-release
+
+        The current release deployed is available by viewing
+          juju status intel-device-plugins-k8s-operator
+actions:
+  list-versions:
+    description: List intel-device-plugins-operator and cert-manager versions supported by this charm
+  list-resources:
+    description: List resources of configured version
+    params:
+      controller:
+        type: string
+        default: ""
+        description: |
+          Filter list based on intel-device-plugins-operator or cert-manager.
+      resources:
+        type: string
+        default: ""
+        description: |
+          Space separated list of kubernetes resource types to filter list result
+  scrub-resources:
+    description: Remove deployments other than the current one
+    params:
+      controller:
+        type: string
+        default: ""
+        description: |
+          Filter list based on intel-device-plugins-operator or cert-manager.
+      resources:
+        type: string
+        default: ""
+        description: |
+          Space separated list of kubernetes resource types to filter scrubbing
+  sync-resources:
+    description: |
+      Add kubernetes resources which should be created by this charm which aren't
+      present within the cluster.
+    params:
+      controller:
+        type: string
+        default: ""
+        description: |
+          Filter list based on intel-device-plugins-operator or cert-manager.
+      resources:
+        type: string
+        default: ""
+        description: |
+          Space separated list of kubernetes resource types
+          to use a filter during the sync. This helps limit
+          which missing resources are applied.
