@@ -8,9 +8,22 @@ import pickle
 from hashlib import md5
 from typing import Dict
 
-from ops.manifests import ManifestLabel, Manifests
+from lightkube.codecs import AnyResource
+from ops.manifests import ManifestLabel, Manifests, Patch
 
 log = logging.getLogger()
+
+
+class PatchPluginName(Patch):
+    """Adjust name of device plugin from sample naming provided by Intel."""
+
+    def __call__(self, obj: AnyResource) -> None:
+        """Replace sample naming provided by Intel."""
+        if obj.kind == "GpuDevicePlugin":
+            upstream_name: str = obj["metadata"]["name"]
+            if upstream_name.endswith("-sample"):
+                log.info(f"Patching name for {obj.kind} {upstream_name}")
+                obj["metadata"]["name"] = upstream_name.removesuffix("-sample")
 
 
 class IntelDevicePluginsK8SOperatorManifests(Manifests):
@@ -23,6 +36,7 @@ class IntelDevicePluginsK8SOperatorManifests(Manifests):
             "upstream/intel-device-plugins-operator",
             [
                 ManifestLabel(self),
+                PatchPluginName(self),
             ],
         )
         self.charm_config = charm_config
@@ -35,6 +49,8 @@ class IntelDevicePluginsK8SOperatorManifests(Manifests):
         for key, value in dict(**config).items():
             if value == "" or value is None:
                 del config[key]  # blank out keys not currently set to something
+
+        config["release"] = config.pop("intel-operator-release", None)
 
         return config
 
