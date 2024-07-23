@@ -55,9 +55,7 @@ jobs:
 
                 runcmd:
                 - |
-                  # Later we should pull down the relevant code to test from a workflow step
-                  # and scp the code to the testflinger device
-                  sudo -u ubuntu git clone https://github.com/canonical/intel-device-plugins-k8s-operator.git ~ubuntu/intel-device-plugins-k8s-operator
+                  sudo -u ubuntu git clone -b ${{ github.head_ref || github.ref_name }} https://github.com/canonical/intel-device-plugins-k8s-operator.git ~ubuntu/intel-device-plugins-k8s-operator
 
                 - |
                   # Install tox from pypi (v4) instead of apt (v3)
@@ -89,4 +87,5 @@ jobs:
                 ssh \$DEVICE_IP 'SLEEP_SECS=5; TIMEOUT_SECS=1200; elapsed_secs=0; while ! command -v juju; do echo "Waiting for juju to be installed, elapsed_secs: ${elapsed_secs}"; sleep ${SLEEP_SECS}; elapsed_secs=$((elapsed_secs+SLEEP_SECS)); if (( elapsed_secs > TIMEOUT_SECS )); then >&2 echo "Timeout waiting for juju to be installed"; exit 1; fi; done'
                 ssh \$DEVICE_IP 'SLEEP_SECS=5; TIMEOUT_SECS=1200; elapsed_secs=0; while ! juju status -m welcome-k8s; do echo "Waiting for juju model to be deployed, elapsed_secs: ${elapsed_secs}"; sleep ${SLEEP_SECS}; elapsed_secs=$((elapsed_secs+SLEEP_SECS)); if (( elapsed_secs > TIMEOUT_SECS )); then >&2 echo "Timeout waiting for juju model to be deployed"; exit 1; fi; done'
                 ssh \$DEVICE_IP 'microk8s.kubectl -n controller-microk8s wait --for=condition=Ready pod/controller-0 --timeout=1200s'
+                ssh \$DEVICE_IP 'cd ~ubuntu/intel-device-plugins-k8s-operator && git branch && git log --name-status HEAD^..HEAD'
                 ssh \$DEVICE_IP 'tox -e integration --conf ~ubuntu/intel-device-plugins-k8s-operator/tox.ini'
