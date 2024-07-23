@@ -1,5 +1,13 @@
-name: cla-check
-on: [pull_request_target]
+name: Run static code analysis and integration tests
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - frenchwr/add-testflinger-integration
+  pull_request:
+    branches:
+      - main
 
 jobs:
   cla-check:
@@ -22,3 +30,71 @@ jobs:
     with:
       python: "['3.10', '3.11']"
 
+  testflinger-submit:
+    runs-on: [self-hosted, testflinger]
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+      - name: Submit job
+        uses: canonical/testflinger/.github/actions/submit@main
+        with:
+          poll: true
+          job: |
+            job_queue: dell-precision-3470-c30322
+            provision_data:
+              distro: jammy
+              user_data: |
+                #cloud-config
+                package_update: true
+                package_upgrade: true
+                package_reboot_if_required: true
+
+                packages:
+                - python3-pip
+
+                snap:
+                  commands:
+                  # Juju 3.5 is supported until Jan 2025
+                  # https://juju.is/docs/juju/roadmap
+                  - snap install juju --channel=3.5/stable
+                  - snap install microk8s --channel=1.29-strict/stable
+                  - snap install --classic charmcraft
+                  - snap refresh
+
+                runcmd:
+                - |
+                  # Later we should pull down the relevant code to test from a workflow step
+                  # and scp the code to the testflinger device
+                  sudo -u ubuntu git clone https://github.com/canonical/intel-device-plugins-k8s-operator.git ~ubuntu/intel-device-plugins-k8s-operator
+
+                - |
+                  # Install tox from pypi (v4) instead of apt (v3)
+                  pip3 install tox
+
+                - |
+                  # Make sure juju directory is there
+                  # https://bugs.launchpad.net/juju/+bug/1995697
+                  sudo -u ubuntu mkdir -p /home/ubuntu/.local/share/juju
+
+                - |
+                  # setup lxd for charmcraft
+                  lxd init --auto
+                  adduser ubuntu lxd
+
+                - |
+                  # setup microk8s and bootstrap
+                  usermod -a -G snap_microk8s ubuntu
+                  usermod -a -G microk8s ubuntu
+                  microk8s status --wait-ready
+                  # wait for storage become available
+                  microk8s.enable hostpath-storage
+                  microk8s.kubectl rollout status deployments/hostpath-provisioner -n kube-system -w --timeout=600s
+                  sudo -u ubuntu juju bootstrap microk8s microk8s
+                  sudo -u ubuntu juju add-model --config logging-config="<root>=WARNING; unit=DEBUG" --config update-status-hook-interval="1m" welcome-k8s
+            test_data:
+              test_cmds: |
+                ssh $DEVICE_IP 'SLEEP_SECS=5; TIMEOUT_SECS=1200; elapsed_secs=0; while ! command -v microk8s; do echo "Waiting for microk8s to be installed, elapsed_secs: ${elapsed_secs}"; sleep ${SLEEP_SECS}; elapsed_secs=$((elapsed_secs+SLEEP_SECS)); if (( elapsed_secs > TIMEOUT_SECS )); then >&2 echo "Timeout waiting for microk8s to be installed"; exit 1; fi; done'
+                ssh $DEVICE_IP 'SLEEP_SECS=5; TIMEOUT_SECS=1200; elapsed_secs=0; while ! command -v juju; do echo "Waiting for juju to be installed, elapsed_secs: ${elapsed_secs}"; sleep ${SLEEP_SECS}; elapsed_secs=$((elapsed_secs+SLEEP_SECS)); if (( elapsed_secs > TIMEOUT_SECS )); then >&2 echo "Timeout waiting for juju to be installed"; exit 1; fi; done'
+                ssh $DEVICE_IP 'SLEEP_SECS=5; TIMEOUT_SECS=1200; elapsed_secs=0; while ! juju status -m welcome-k8s; do echo "Waiting for juju model to be deployed, elapsed_secs: ${elapsed_secs}"; sleep ${SLEEP_SECS}; elapsed_secs=$((elapsed_secs+SLEEP_SECS)); if (( elapsed_secs > TIMEOUT_SECS )); then >&2 echo "Timeout waiting for juju model to be deployed"; exit 1; fi; done'
+                ssh $DEVICE_IP 'microk8s.kubectl -n controller-microk8s wait --for=condition=Ready pod/controller-0 --timeout=1200s'
+                ssh $DEVICE_IP 'tox -e integration --conf ~ubuntu/intel-device-plugins-k8s-operator/tox.ini'
