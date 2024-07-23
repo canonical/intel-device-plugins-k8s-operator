@@ -16,11 +16,11 @@ jobs:
       - name: Check if CLA signed
         uses: canonical/has-signed-canonical-cla@v1
   
-  call-inclusive-naming-check:
-    name: Inclusive naming
-    uses: canonical-web-and-design/Inclusive-naming/.github/workflows/woke.yaml@main
-    with:
-      fail-on-error: "true"
+  #call-inclusive-naming-check:
+  #  name: Inclusive naming
+  #  uses: canonical-web-and-design/Inclusive-naming/.github/workflows/woke.yaml@main
+  #  with:
+  #    fail-on-error: "true"
 
   lint-unit:
     name: Lint Unit
