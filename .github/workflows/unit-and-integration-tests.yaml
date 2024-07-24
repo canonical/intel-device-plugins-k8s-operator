@@ -1,4 +1,4 @@
-name: Intel Device Plugins K8s Operator CI
+name: Intel Device Plugins K8s Operator Unit and Integration Tests
 on:
   workflow_dispatch:
   push:
@@ -10,34 +10,24 @@ on:
       - main
 
 jobs:
-  cla-check:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check if CLA signed
-        uses: canonical/has-signed-canonical-cla@main
-        with:
-          github-token: "${{ secrets.GITHUB_TOKEN }}"
-
   call-inclusive-naming-check:
     name: Inclusive naming
     uses: canonical/inclusive-naming/.github/workflows/woke.yaml@main
     with:
       fail-on-error: "true"
   
-  lint-unit:
-    name: Lint Unit
+  lint-and-unit-tests:
+    name: Lint and unit tests
     uses: charmed-kubernetes/workflows/.github/workflows/lint-unit.yaml@main
     with:
       python: "['3.10', '3.11']"
     needs:
       - call-inclusive-naming-check
 
-  testflinger-submit:
+  integration-tests:
     runs-on: [self-hosted, testflinger]
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-      - name: Submit job
+      - name: Submit job to testflinger
         uses: canonical/testflinger/.github/actions/submit@main
         with:
           poll: true
