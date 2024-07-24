@@ -1,4 +1,4 @@
-name: Run static code analysis and integration tests
+name: Intel Device Plugins K8s Operator CI
 on:
   workflow_dispatch:
   push:
@@ -14,13 +14,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check if CLA signed
-        uses: canonical/has-signed-canonical-cla@v1
+        uses: canonical/has-signed-canonical-cla@main
+
+  call-inclusive-naming-check:
+    name: Inclusive naming
+    uses: canonical/inclusive-naming/.github/workflows/woke.yaml@main
+    with:
+      fail-on-error: "true"
   
   lint-unit:
     name: Lint Unit
     uses: charmed-kubernetes/workflows/.github/workflows/lint-unit.yaml@main
     with:
       python: "['3.10', '3.11']"
+    needs:
+      - call-inclusive-naming-check
 
   testflinger-submit:
     runs-on: [self-hosted, testflinger]
