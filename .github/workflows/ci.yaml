@@ -11,7 +11,7 @@ on:
 
 jobs:
   cla-check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Check if CLA signed
         uses: canonical/has-signed-canonical-cla@main
