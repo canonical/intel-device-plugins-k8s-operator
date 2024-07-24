@@ -96,6 +96,9 @@ jobs:
             test_data:
               test_cmds: |
 
+                # Exit immediately if a test fails
+                set -e
+
                 # Test 1: Verify that microk8s is installed
                 ssh \$DEVICE_IP '
                   SLEEP_SECS=5

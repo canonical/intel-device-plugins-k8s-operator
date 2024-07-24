@@ -4,6 +4,7 @@ on:
 
 jobs:
   cla-check:
+    name: CLA check
     runs-on: ubuntu-latest
     steps:
       - name: Check if CLA signed
