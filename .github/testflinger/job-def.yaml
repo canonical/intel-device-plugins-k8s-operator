@@ -24,13 +24,6 @@ provision_data:
 
     runcmd:
     - |
-      # Clone source from the appropriate branch/commit
-      sudo -u ubuntu git clone \
-        -b ${{ github.head_ref || github.ref_name }} \
-        https://github.com/canonical/intel-device-plugins-k8s-operator.git \
-        ~ubuntu/intel-device-plugins-k8s-operator
-
-    - |
       # Install tox from pypi (v4) instead of apt (v3)
       pip3 install tox
 
@@ -65,38 +58,38 @@ test_data:
     # Exit immediately if a test fails
     set -e
 
-    # Test 1: Verify that microk8s is installed
+    # Test 1: Clone repo from appropriate branch/commit
+    ssh $DEVICE_IP '
+      git clone -b ${{ github.head_ref || github.ref_name }} \
+        https://github.com/canonical/intel-device-plugins-k8s-operator.git \
+        ~ubuntu/intel-device-plugins-k8s-operator
+      cd ~ubuntu/intel-device-plugins-k8s-operator
+      echo "Current git branch: $(git branch --show-current)"
+      echo "Latest commit:"
+      git log --name-status HEAD^..HEAD
+    '
+
+    # Test 2: Verify that microk8s is installed
     ssh $DEVICE_IP '
       ~ubuntu/intel-device-plugins-k8s-operator/.github/testflinger/test-cmd-with-timeout.sh \
         command -v microk8s
     '
 
-    # Test 2: Verify that juju is installed
+    # Test 3: Verify that juju is installed
     ssh $DEVICE_IP '
       ~ubuntu/intel-device-plugins-k8s-operator/.github/testflinger/test-cmd-with-timeout.sh \
         command -v juju
     '
 
-    # Test 3: Verify that juju microk8s model is deployed
+    # Test 4: Verify that juju microk8s model is deployed
     ssh $DEVICE_IP '
       ~ubuntu/intel-device-plugins-k8s-operator/.github/testflinger/test-cmd-with-timeout.sh \
         juju status -m welcome-k8s
     '
 
-    # Test 4: Verify that microk8s controller pod is ready
+    # Test 5: Verify that microk8s controller pod is ready
     ssh $DEVICE_IP '
       microk8s.kubectl -n controller-microk8s wait --for=condition=Ready pod/controller-0 --timeout=1200s
-    '
-
-    # Test 5: For debugging, show current git branch and latest commit
-    #         Note this branch is cloned from the runcmd cloud-init section and placing
-    #         the test here ensures that the clone command has been run as the previous
-    #         test will only complete successfully once the runcmd section has completed.
-    ssh $DEVICE_IP '
-      cd ~ubuntu/intel-device-plugins-k8s-operator
-      echo "Current git branch: $(git branch --show-current)"
-      echo "Latest commit:"
-      git log --name-status HEAD^..HEAD
     '
 
     # Test 6: Run charm integration tests with tox
