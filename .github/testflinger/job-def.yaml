@@ -67,50 +67,20 @@ test_data:
 
     # Test 1: Verify that microk8s is installed
     ssh $DEVICE_IP '
-      SLEEP_SECS=5
-      TIMEOUT_SECS=1200
-      elapsed_secs=0
-      while ! command -v microk8s; do
-        echo "Waiting for microk8s to be installed, elapsed_secs: ${elapsed_secs}"
-        sleep ${SLEEP_SECS}
-        elapsed_secs=$((elapsed_secs+SLEEP_SECS))
-        if (( elapsed_secs > TIMEOUT_SECS )); then
-          >&2 echo "Timeout waiting for microk8s to be installed"
-          exit 1
-        fi
-      done
+      ~ubuntu/intel-device-plugins-k8s-operator/.github/testflinger/test-cmd-with-timeout.sh \
+        command -v microk8s
     '
 
     # Test 2: Verify that juju is installed
     ssh $DEVICE_IP '
-      SLEEP_SECS=5
-      TIMEOUT_SECS=1200
-      elapsed_secs=0
-      while ! command -v juju; do
-        echo "Waiting for juju to be installed, elapsed_secs: ${elapsed_secs}"
-        sleep ${SLEEP_SECS}
-        elapsed_secs=$((elapsed_secs+SLEEP_SECS))
-        if (( elapsed_secs > TIMEOUT_SECS )); then
-          >&2 echo "Timeout waiting for juju to be installed"
-          exit 1
-        fi
-      done
+      ~ubuntu/intel-device-plugins-k8s-operator/.github/testflinger/test-cmd-with-timeout.sh \
+        command -v juju
     '
 
     # Test 3: Verify that juju microk8s model is deployed
     ssh $DEVICE_IP '
-      SLEEP_SECS=5
-      TIMEOUT_SECS=1200
-      elapsed_secs=0
-      while ! juju status -m welcome-k8s; do
-        echo "Waiting for juju model to be deployed, elapsed_secs: ${elapsed_secs}"
-        sleep ${SLEEP_SECS}
-        elapsed_secs=$((elapsed_secs+SLEEP_SECS))
-        if (( elapsed_secs > TIMEOUT_SECS )); then
-          >&2 echo "Timeout waiting for juju model to be deployed"
-          exit 1
-        fi
-      done
+      ~ubuntu/intel-device-plugins-k8s-operator/.github/testflinger/test-cmd-with-timeout.sh \
+        juju status -m welcome-k8s
     '
 
     # Test 4: Verify that microk8s controller pod is ready

@@ -33,4 +33,4 @@ jobs:
         uses: canonical/testflinger/.github/actions/submit@main
         with:
           poll: true
-          job-path: ${GITHUB_WORKSPACE}/.github/workflows/testflinger-job-def.yaml
+          job-path: ${GITHUB_WORKSPACE}/.github/testflinger/job-def.yaml
