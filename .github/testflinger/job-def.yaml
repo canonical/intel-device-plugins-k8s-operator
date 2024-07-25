@@ -60,7 +60,7 @@ test_data:
 
     # Test 1: Clone repo from appropriate branch/commit
     ssh $DEVICE_IP '
-      git clone -b ${{ github.head_ref || github.ref_name }} \
+      git clone -b REPLACE_BRANCH \
         https://github.com/canonical/intel-device-plugins-k8s-operator.git \
         ~ubuntu/intel-device-plugins-k8s-operator
       cd ~ubuntu/intel-device-plugins-k8s-operator

@@ -29,6 +29,10 @@ jobs:
     steps:
       - name: Check out code
         uses: actions/checkout@v4
+      - name: Substitute appropriate branch name in job definition file
+        run: |
+          sed -i "s/REPLACE_BRANCH/${{ github.head_ref || github.ref_name }}/" \
+          ${GITHUB_WORKSPACE}/.github/testflinger/job-def.yaml
       - name: Submit testflinger job
         uses: canonical/testflinger/.github/actions/submit@main
         with:
