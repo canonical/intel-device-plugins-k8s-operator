@@ -6,6 +6,7 @@ provision_data:
     # Note, much of this is borrowed from the
     # charm-dev multipass template:
     # https://github.com/canonical/multipass-blueprints/blob/main/v1/charm-dev.yaml
+    package_reboot_if_required: true
     packages:
     - tox
 
@@ -27,15 +28,13 @@ provision_data:
     - |
       # setup lxd for charmcraft
       lxd init --auto
-      adduser ubuntu lxd
 
     - |
       # setup microk8s and bootstrap
       usermod -a -G snap_microk8s ubuntu
-      usermod -a -G microk8s ubuntu
       microk8s status --wait-ready
-      # wait for storage to become available
       microk8s.enable hostpath-storage
+      # wait for storage to become available
       microk8s.kubectl rollout status \
         deployments/hostpath-provisioner \
         -n kube-system -w --timeout=1200s
