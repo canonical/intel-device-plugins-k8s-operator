@@ -24,7 +24,7 @@ provision_data:
 
     - |
       # Install tox from pypi (v4) instead of apt (v3)
-      sudo -u ubuntu pip install tox
+      pip install tox
 
     - |
       # Disable swap
