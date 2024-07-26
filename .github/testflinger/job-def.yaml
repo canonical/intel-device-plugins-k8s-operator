@@ -6,9 +6,12 @@ provision_data:
     # Note, much of this is borrowed from the
     # charm-dev multipass template:
     # https://github.com/canonical/multipass-blueprints/blob/main/v1/charm-dev.yaml
+    package_update: true
+    package_upgrade: true
     package_reboot_if_required: true
+
     packages:
-    - tox
+    - python3-pip
 
     snap:
       commands:
@@ -20,6 +23,39 @@ provision_data:
       - snap refresh
 
     runcmd:
+    - DEBIAN_FRONTEND=noninteractive apt remove -y landscape-client landscape-common adwaita-icon-theme humanity-icon-theme
+    - DEBIAN_FRONTEND=noninteractive apt -y upgrade
+    - DEBIAN_FRONTEND=noninteractive apt -y autoremove
+
+    - |
+      # Install tox from pypi (v4) instead of apt (v3)
+      sudo -u ubuntu pip install tox
+
+    - |
+      # disable swap
+      sysctl -w vm.swappiness=0
+      echo "vm.swappiness = 0" | tee -a /etc/sysctl.conf
+      swapoff -a
+
+    - |
+      # disable unnecessary services
+      systemctl disable man-db.timer man-db.service --now
+      systemctl disable apport.service apport-autoreport.service  --now
+      systemctl disable apt-daily.service apt-daily.timer --now
+      systemctl disable apt-daily-upgrade.service apt-daily-upgrade.timer --now
+      systemctl disable unattended-upgrades.service --now
+      systemctl disable motd-news.service motd-news.timer --now
+      systemctl disable bluetooth.target --now
+      systemctl disable ua-messaging.service ua-messaging.timer --now
+      systemctl disable ua-timer.timer ua-timer.service --now
+      systemctl disable systemd-tmpfiles-clean.timer --now
+
+    # Disable IPv6
+      echo "net.ipv6.conf.all.disable_ipv6=1" | tee -a /etc/sysctl.conf
+      echo "net.ipv6.conf.default.disable_ipv6=1" | tee -a /etc/sysctl.conf
+      echo "net.ipv6.conf.lo.disable_ipv6=1" | tee -a /etc/sysctl.conf
+      sysctl -p
+
     - |
       # Make sure juju directory is there
       # https://bugs.launchpad.net/juju/+bug/1995697
@@ -28,11 +64,18 @@ provision_data:
     - |
       # setup lxd for charmcraft
       lxd init --auto
+      adduser ubuntu lxd
 
     - |
       # setup microk8s and bootstrap
       usermod -a -G snap_microk8s ubuntu
+      usermod -a -G microk8s ubuntu
       microk8s status --wait-ready
+      microk8s.enable dns
+      microk8s.kubectl rollout status \
+        deployments/coredns \
+        -n kube-system -w --timeout=10800s
+      microk8s.enable rbac
       microk8s.enable hostpath-storage
       # wait for storage to become available
       microk8s.kubectl rollout status \
