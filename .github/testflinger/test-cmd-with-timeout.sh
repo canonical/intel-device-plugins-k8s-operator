@@ -26,11 +26,8 @@ while ! ${cmd}; do
   # Temporary for debugging issue where juju model fails to deploy
   ##
   echo "DEBUG: "
-  sudo cloud-init status -l
   echo "Last 50 lines of cloud-init-output.log:"
   tail -n 50 /var/log/cloud-init-output.log
-  echo "Last 50 lines of cloud-init.log:"
-  tail -n 50 /var/log/cloud-init.log
   ##
   sleep ${SLEEP_SECS}
   elapsed_secs=$((elapsed_secs+SLEEP_SECS))

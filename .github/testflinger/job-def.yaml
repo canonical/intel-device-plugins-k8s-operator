@@ -6,12 +6,8 @@ provision_data:
     # Note, much of this is borrowed from the
     # charm-dev multipass template:
     # https://github.com/canonical/multipass-blueprints/blob/main/v1/charm-dev.yaml
-    package_update: true
-    package_upgrade: true
-    package_reboot_if_required: true
-
     packages:
-    - python3-pip
+    - tox
 
     snap:
       commands:
@@ -23,10 +19,6 @@ provision_data:
       - snap refresh
 
     runcmd:
-    - |
-      # Install tox from pypi (v4) instead of apt (v3)
-      pip3 install tox
-
     - |
       # Make sure juju directory is there
       # https://bugs.launchpad.net/juju/+bug/1995697
@@ -46,7 +38,7 @@ provision_data:
       microk8s.enable hostpath-storage
       microk8s.kubectl rollout status \
         deployments/hostpath-provisioner \
-        -n kube-system -w --timeout=600s
+        -n kube-system -w --timeout=1200s
       sudo -u ubuntu juju bootstrap microk8s microk8s
       sudo -u ubuntu juju add-model \
         --config logging-config="<root>=WARNING; unit=DEBUG" \
@@ -58,7 +50,10 @@ test_data:
     # Exit immediately if a test fails
     set -e
 
-    # Test 1: Clone repo from appropriate branch/commit
+    # Clone repo from appropriate branch/commit.
+    # This is done here rather than in user_data to avoid
+    # race conditions were the test_cmds section runs
+    # before the runcmd section has run on the initial boot.
     ssh $DEVICE_IP '
       git clone -b REPLACE_BRANCH \
         https://github.com/canonical/intel-device-plugins-k8s-operator.git \
@@ -69,30 +64,30 @@ test_data:
       git log --name-status HEAD^..HEAD
     '
 
-    # Test 2: Verify that microk8s is installed
+    # Test 1: Verify that microk8s is installed
     ssh $DEVICE_IP '
       ~ubuntu/intel-device-plugins-k8s-operator/.github/testflinger/test-cmd-with-timeout.sh \
         command -v microk8s
     '
 
-    # Test 3: Verify that juju is installed
+    # Test 2: Verify that juju is installed
     ssh $DEVICE_IP '
       ~ubuntu/intel-device-plugins-k8s-operator/.github/testflinger/test-cmd-with-timeout.sh \
         command -v juju
     '
 
-    # Test 4: Verify that juju microk8s model is deployed
+    # Test 3: Verify that juju microk8s model is deployed
     ssh $DEVICE_IP '
       ~ubuntu/intel-device-plugins-k8s-operator/.github/testflinger/test-cmd-with-timeout.sh \
         juju status -m welcome-k8s
     '
 
-    # Test 5: Verify that microk8s controller pod is ready
+    # Test 4: Verify that microk8s controller pod is ready
     ssh $DEVICE_IP '
       microk8s.kubectl -n controller-microk8s wait --for=condition=Ready pod/controller-0 --timeout=1200s
     '
 
-    # Test 6: Run charm integration tests with tox
+    # Test 5: Run charm integration tests with tox
     ssh $DEVICE_IP '
       tox -e integration --conf ~ubuntu/intel-device-plugins-k8s-operator/tox.ini
     '
