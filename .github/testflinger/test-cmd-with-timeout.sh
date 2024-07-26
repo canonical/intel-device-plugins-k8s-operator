@@ -12,8 +12,8 @@ if [ $# -eq 0 ]; then
     exit 1
 fi
 
-SLEEP_SECS=5
-TIMEOUT_SECS=1200
+SLEEP_SECS=30
+TIMEOUT_SECS=10800
 elapsed_secs=0
 
 # capture all args passed to script and use as the test command
@@ -23,11 +23,11 @@ while ! ${cmd}; do
   echo "Command '${cmd}' failed, retrying in ${SLEEP_SECS} seconds."
   echo "Elapsed seconds: ${elapsed_secs}"
   ##
-  # Temporary for debugging issue where juju model fails to deploy
+  # Helpful for tracking the status of cloud-init provisioning
   ##
-  echo "DEBUG: "
-  echo "Last 50 lines of cloud-init-output.log:"
+  echo "[DEBUG] Last 50 lines of cloud-init-output.log:"
   tail -n 50 /var/log/cloud-init-output.log
+  echo "[DEBUG] End of cloud-init-output.log."
   ##
   sleep ${SLEEP_SECS}
   elapsed_secs=$((elapsed_secs+SLEEP_SECS))

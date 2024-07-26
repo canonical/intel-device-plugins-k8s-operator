@@ -37,7 +37,7 @@ provision_data:
       # wait for storage to become available
       microk8s.kubectl rollout status \
         deployments/hostpath-provisioner \
-        -n kube-system -w --timeout=1200s
+        -n kube-system -w --timeout=10800s
       sudo -u ubuntu juju bootstrap microk8s microk8s
       sudo -u ubuntu juju add-model \
         --config logging-config="<root>=WARNING; unit=DEBUG" \
