@@ -6,26 +6,18 @@ provision_data:
     # Note, much of this is borrowed from the
     # charm-dev multipass template:
     # https://github.com/canonical/multipass-blueprints/blob/main/v1/charm-dev.yaml
-    package_update: true
-    package_upgrade: true
-    package_reboot_if_required: true
-
-    packages:
-    - python3-pip
-
-    snap:
-      commands:
-      # Juju 3.5 is supported until Jan 2025
-      # https://juju.is/docs/juju/roadmap
-      - snap install juju --channel=3.5/stable
-      - snap install microk8s --channel=1.29-strict/stable
-      - snap install --classic charmcraft
-      - snap refresh
 
     runcmd:
-    - DEBIAN_FRONTEND=noninteractive apt remove -y landscape-client landscape-common adwaita-icon-theme humanity-icon-theme
+    - DEBIAN_FRONTEND=noninteractive apt update
     - DEBIAN_FRONTEND=noninteractive apt -y upgrade
-    - DEBIAN_FRONTEND=noninteractive apt -y autoremove
+    - DEBIAN_FRONTEND=noninteractive apt -y install python3-pip
+
+    # Juju 3.5 is supported until Jan 2025
+    # https://juju.is/docs/juju/roadmap
+    - snap install juju --channel=3.5/stable
+    - snap install microk8s --channel=1.29-strict/stable
+    - snap install --classic charmcraft
+    - snap refresh
 
     - |
       # Install tox from pypi (v4) instead of apt (v3)
@@ -36,19 +28,6 @@ provision_data:
       sysctl -w vm.swappiness=0
       echo "vm.swappiness = 0" | tee -a /etc/sysctl.conf
       swapoff -a
-
-    - |
-      # disable unnecessary services
-      systemctl disable man-db.timer man-db.service --now
-      systemctl disable apport.service apport-autoreport.service  --now
-      systemctl disable apt-daily.service apt-daily.timer --now
-      systemctl disable apt-daily-upgrade.service apt-daily-upgrade.timer --now
-      systemctl disable unattended-upgrades.service --now
-      systemctl disable motd-news.service motd-news.timer --now
-      systemctl disable bluetooth.target --now
-      systemctl disable ua-messaging.service ua-messaging.timer --now
-      systemctl disable ua-timer.timer ua-timer.service --now
-      systemctl disable systemd-tmpfiles-clean.timer --now
 
     # Disable IPv6
       echo "net.ipv6.conf.all.disable_ipv6=1" | tee -a /etc/sysctl.conf
