@@ -19,7 +19,7 @@ provision_data:
       # Juju 3.5 is supported until Jan 2025
       # https://juju.is/docs/juju/roadmap
       snap install juju --channel=3.5/stable
-      snap install microk8s --channel=1.30/stable
+      snap install microk8s --channel=1.30-strict/stable
       snap install --classic charmcraft
       snap refresh
 
