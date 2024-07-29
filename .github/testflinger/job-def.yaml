@@ -19,7 +19,7 @@ provision_data:
       # Juju 3.5 is supported until Jan 2025
       # https://juju.is/docs/juju/roadmap
       snap install juju --channel=3.5/stable
-      snap install microk8s --channel=1.29-strict/stable
+      snap install microk8s --channel=1.30-strict/stable
       snap install --classic charmcraft
       snap refresh
 
@@ -52,11 +52,15 @@ provision_data:
       microk8s.enable dns
       microk8s.kubectl rollout status \
         deployments/coredns \
-        -n kube-system -w --timeout=10800s
+        -n kube-system -w --timeout=1800s
+      # Give microk8s another minute to stabilize
+      # to avoid intermittent failures when
+      # enabling hostpath-storage
+      sleep 60
       microk8s.enable hostpath-storage
       microk8s.kubectl rollout status \
         deployments/hostpath-provisioner \
-        -n kube-system -w --timeout=10800s
+        -n kube-system -w --timeout=1800s
 
       # bootstrap microk8s controller and add model
       sudo -u ubuntu juju bootstrap microk8s microk8s
