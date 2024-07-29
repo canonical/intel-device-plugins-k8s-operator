@@ -13,7 +13,7 @@ if [ $# -eq 0 ]; then
 fi
 
 SLEEP_SECS=30
-TIMEOUT_SECS=10800
+TIMEOUT_SECS=1800
 elapsed_secs=0
 
 # capture all args passed to script and use as the test command
