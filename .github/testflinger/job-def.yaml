@@ -21,7 +21,7 @@ provision_data:
       # https://juju.is/docs/juju/roadmap
       snap install juju --channel=3.5/stable
       snap install microk8s --channel=1.30-strict/stable
-      snap install --classic charmcraft
+      snap install --classic charmcraft --channel=3.x/stable
       snap refresh
 
       # Install tox from pypi (v4) instead of apt (v3)
