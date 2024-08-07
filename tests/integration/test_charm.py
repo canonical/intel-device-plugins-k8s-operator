@@ -9,6 +9,8 @@ from pathlib import Path
 import pytest
 import yaml
 from pytest_operator.plugin import OpsTest
+from lightkube import Client
+from lightkube.resources.core_v1 import Node
 
 logger = logging.getLogger(__name__)
 
@@ -32,3 +34,17 @@ async def test_build_and_deploy(ops_test: OpsTest):
             apps=[APP_NAME], status="active", raise_on_blocked=True, timeout=1800
         ),
     )
+
+async def test_node_label(kubernetes: Client):
+    """Verify that expected node label is present.
+
+    This will fail if an Intel GPU is not present on the system.
+    """
+    async for node in kubernetes.list(Node):
+        assert node.metadata.labels["intel.feature.node.kubernetes.io/gpu"] == "true"
+
+async def test_node_status(kubernetes: Client):
+    """Verify that the number of GPU slots are the expected value."""
+    async for node in kubernetes.list(Node):
+        assert node.status.capacity["gpu.intel.com/i915"] == "10"
+        assert node.status.allocatable["gpu.intel.com/i915"] == "10"
