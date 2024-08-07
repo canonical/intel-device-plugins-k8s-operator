@@ -23,8 +23,8 @@ def harness():
 def test_patch_plugin_name(harness: Harness):
     patch = PatchPluginName(harness.charm.collector.manifests)
     obj = mock.MagicMock()
-    d = {"kind": "GpuDevicePlugin", "metadata": {"name": "dummydeviceplugin-sample"}}
+    d = {"kind": "GpuDevicePlugin", "metadata": {"name": "mockdeviceplugin-sample"}}
     obj.__getitem__.side_effect = d.__getitem__
     obj.kind = d["kind"]
     patch(obj)
-    assert obj["metadata"]["name"] == "dummydeviceplugin"
+    assert obj["metadata"]["name"] == "mockdeviceplugin"
