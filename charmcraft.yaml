@@ -28,6 +28,11 @@ bases:
       architectures: ["amd64"]
 parts:
   charm:
+    plugin: charm
+    source: .
+  upstream:
+    plugin: dump
+    source: .
     prime:
       - upstream/**
 config:

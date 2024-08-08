@@ -4,14 +4,14 @@
 import unittest.mock as mock
 
 import pytest
-from charm import IntelDevicePluginsK8SOperatorCharm
+from charm import IntelDevicePluginsK8sCharm
 from ops.model import ActiveStatus, MaintenanceStatus, WaitingStatus
 from ops.testing import Harness
 
 
 @pytest.fixture
 def harness():
-    harness = Harness(IntelDevicePluginsK8SOperatorCharm)
+    harness = Harness(IntelDevicePluginsK8sCharm)
     try:
         harness.set_leader(is_leader=True)
         yield harness

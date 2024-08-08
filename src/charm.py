@@ -4,7 +4,7 @@
 #
 # Learn more at: https://juju.is/docs/sdk
 
-"""Dispatch logic for the intel-device-plugins-k8s-operator charm."""
+"""Dispatch logic for the intel-device-plugins-k8s charm."""
 
 import logging
 
@@ -20,7 +20,7 @@ from ops.model import ActiveStatus, MaintenanceStatus, WaitingStatus
 log = logging.getLogger()
 
 
-class IntelDevicePluginsK8SOperatorCharm(CharmBase):
+class IntelDevicePluginsK8sCharm(CharmBase):
     """Charm the service."""
 
     stored = StoredState()
@@ -125,4 +125,4 @@ class IntelDevicePluginsK8SOperatorCharm(CharmBase):
 
 
 if __name__ == "__main__":  # pragma: nocover
-    main(IntelDevicePluginsK8SOperatorCharm)  # type: ignore
+    main(IntelDevicePluginsK8sCharm)  # type: ignore
