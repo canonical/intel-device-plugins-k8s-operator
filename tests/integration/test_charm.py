@@ -8,9 +8,9 @@ from pathlib import Path
 
 import pytest
 import yaml
-from pytest_operator.plugin import OpsTest
-from lightkube import Client
+from lightkube import AsyncClient
 from lightkube.resources.core_v1 import Node
+from pytest_operator.plugin import OpsTest
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +35,23 @@ async def test_build_and_deploy(ops_test: OpsTest):
         ),
     )
 
-async def test_node_label(kubernetes: Client):
+
+async def test_charm_status(ops_test: OpsTest):
+    application = ops_test.model.applications[APP_NAME]
+    units = application.units
+    cert_manager_latest_version = Path("upstream", "cert-manager", "version").read_text().strip()
+    operator_latest_version = (
+        Path("upstream", "intel-device-plugins-operator", "version").read_text().strip()
+    )
+    assert units[0].workload_status == "active"
+    assert units[0].workload_status_message == "Ready"
+    assert application.status == "active"
+    assert (
+        application.workload_version == f"{cert_manager_latest_version},{operator_latest_version}"
+    )
+
+
+async def test_node_label(kubernetes: AsyncClient):
     """Verify that expected node label is present.
 
     This will fail if an Intel GPU is not present on the system.
@@ -43,8 +59,23 @@ async def test_node_label(kubernetes: Client):
     async for node in kubernetes.list(Node):
         assert node.metadata.labels["intel.feature.node.kubernetes.io/gpu"] == "true"
 
-async def test_node_status(kubernetes: Client):
+
+async def test_node_status(kubernetes: AsyncClient):
     """Verify that the number of GPU slots are the expected value."""
     async for node in kubernetes.list(Node):
         assert node.status.capacity["gpu.intel.com/i915"] == "10"
         assert node.status.allocatable["gpu.intel.com/i915"] == "10"
+
+
+async def test_adjust_version(ops_test: OpsTest):
+    """Verify that the application versions can be adjusted."""
+    update_status_timeout = 1800
+    application = ops_test.model.applications[APP_NAME]
+    await application.set_config({"intel-device-plugins-operator-release": "0.29.0"})
+    await ops_test.model.wait_for_idle(status="active", timeout=update_status_timeout)
+    await application.reset_config(["intel-device-plugins-operator-release"])
+    await ops_test.model.wait_for_idle(status="active", timeout=update_status_timeout)
+    await application.set_config({"cert-manager-release": "v1.14.5"})
+    await ops_test.model.wait_for_idle(status="active", timeout=update_status_timeout)
+    await application.reset_config(["cert-manager-release"])
+    await ops_test.model.wait_for_idle(status="active", timeout=update_status_timeout)
