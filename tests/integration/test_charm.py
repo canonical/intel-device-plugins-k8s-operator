@@ -63,8 +63,13 @@ async def test_node_label(kubernetes: AsyncClient):
 async def test_node_status(kubernetes: AsyncClient):
     """Verify that the number of GPU slots are the expected value."""
     async for node in kubernetes.list(Node):
-        assert node.status.capacity["gpu.intel.com/i915"] == "10"
-        assert node.status.allocatable["gpu.intel.com/i915"] == "10"
+        # The plugin is configured to allow up to 10 containers
+        # access to each GPU
+        slots_per_gpu = 10
+        gpu_count = int(node.metadata.labels["gpu.intel.com/device-id.0300-a7a0.count"])
+        slots = gpu_count * slots_per_gpu
+        assert node.status.capacity["gpu.intel.com/i915"] == str(slots)
+        assert node.status.allocatable["gpu.intel.com/i915"] == str(slots)
 
 
 async def test_adjust_version(ops_test: OpsTest):
