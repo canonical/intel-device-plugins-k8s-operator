@@ -1,74 +1,7 @@
-job_queue: dell-precision-3470-c30322
+job_queue: REPLACE_QUEUE
 output_timeout: 1800
 provision_data:
-  distro: jammy
-  user_data: |
-    #cloud-config
-    # Note, much of this is borrowed from the
-    # charm-dev multipass template:
-    # https://github.com/canonical/multipass-blueprints/blob/main/v1/charm-dev.yaml
-
-    runcmd:
-    - |
-      # Install apt and snap packages here instead
-      # of in "packages" and "snap" sections
-      # to ensure everything runs sequentially
-      DEBIAN_FRONTEND=noninteractive apt update
-      DEBIAN_FRONTEND=noninteractive apt -y upgrade
-      DEBIAN_FRONTEND=noninteractive apt -y install python3-pip
-
-      # Juju 3.5 is supported until Jan 2025
-      # https://juju.is/docs/juju/roadmap
-      snap install juju --channel=3.5/stable
-      snap install microk8s --channel=1.30-strict/stable
-      snap install --classic charmcraft --channel=3.x/stable
-      snap refresh
-
-      # Install tox from pypi (v4) instead of apt (v3)
-      pip install tox
-
-      # Disable swap
-      sysctl -w vm.swappiness=0
-      echo "vm.swappiness = 0" | tee -a /etc/sysctl.conf
-      swapoff -a
-
-      # Disable IPv6
-      echo "net.ipv6.conf.all.disable_ipv6=1" | tee -a /etc/sysctl.conf
-      echo "net.ipv6.conf.default.disable_ipv6=1" | tee -a /etc/sysctl.conf
-      echo "net.ipv6.conf.lo.disable_ipv6=1" | tee -a /etc/sysctl.conf
-      sysctl -p
-
-      # Make sure juju directory is present
-      # https://bugs.launchpad.net/juju/+bug/1995697
-      sudo -u ubuntu mkdir -p /home/ubuntu/.local/share/juju
-
-      # setup lxd for charmcraft
-      lxd init --auto
-      adduser ubuntu lxd
-
-      # setup microk8s
-      usermod -a -G snap_microk8s ubuntu
-      usermod -a -G microk8s ubuntu
-      microk8s status --wait-ready
-      microk8s.enable dns
-      microk8s.kubectl rollout status \
-        deployments/coredns \
-        -n kube-system -w --timeout=1800s
-      # Give microk8s another minute to stabilize
-      # to avoid intermittent failures when
-      # enabling hostpath-storage
-      sleep 60
-      microk8s.enable hostpath-storage
-      microk8s.kubectl rollout status \
-        deployments/hostpath-provisioner \
-        -n kube-system -w --timeout=1800s
-
-      # bootstrap microk8s controller and add model
-      sudo -u ubuntu juju bootstrap microk8s microk8s
-      sudo -u ubuntu juju add-model \
-        --config logging-config="<root>=WARNING; unit=DEBUG" \
-        --config update-status-hook-interval="1m" \
-        welcome-k8s
+  REPLACE_PROVISION_DATA
 test_data:
   test_cmds: |
 
@@ -76,10 +9,8 @@ test_data:
     set -e
 
     # Clone repo from appropriate branch/commit.
-    # This is done here rather than in user_data to avoid
-    # race conditions were the test_cmds section runs
-    # before the runcmd section has run on the initial boot.
     ssh ubuntu@$DEVICE_IP '
+      DEBIAN_FRONTEND=noninteractive apt -y install git
       git clone -b REPLACE_BRANCH \
         https://github.com/canonical/intel-device-plugins-k8s-operator.git \
         ~ubuntu/intel-device-plugins-k8s-operator
@@ -89,16 +20,19 @@ test_data:
       git log --name-status HEAD^..HEAD
     '
 
+    # Provision charm environment
+    ssh ubuntu@$DEVICE_IP '
+      sudo ~ubuntu/intel-device-plugins-k8s-operator/.github/testflinger/provision.sh
+    '
+
     # Test 1: Verify that microk8s is installed
     ssh ubuntu@$DEVICE_IP '
-      ~ubuntu/intel-device-plugins-k8s-operator/.github/testflinger/test-cmd-with-timeout.sh \
-        command -v microk8s
+      command -v microk8s
     '
 
     # Test 2: Verify that juju is installed
     ssh ubuntu@$DEVICE_IP '
-      ~ubuntu/intel-device-plugins-k8s-operator/.github/testflinger/test-cmd-with-timeout.sh \
-        command -v juju
+      command -v juju
     '
 
     # Test 3: Verify that juju microk8s model is deployed
