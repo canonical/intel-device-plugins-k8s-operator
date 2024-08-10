@@ -10,7 +10,7 @@ test_data:
 
     # Clone repo from appropriate branch/commit.
     ssh ubuntu@$DEVICE_IP '
-      DEBIAN_FRONTEND=noninteractive apt -y install git
+      DEBIAN_FRONTEND=noninteractive sudo apt -y install git
       git clone -b REPLACE_BRANCH \
         https://github.com/canonical/intel-device-plugins-k8s-operator.git \
         ~ubuntu/intel-device-plugins-k8s-operator
